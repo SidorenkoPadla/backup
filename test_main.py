@@ -9,43 +9,41 @@ class User():
             'Authorization': polygon_token,
             'Content-Type': 'application/json'
         }
-
-    def res_vk(self): #Метод для получения списка ссылок на фото
-        with open('Token.txt', 'r', encoding= 'utf-8') as token:
-            URL = 'https://api.vk.com/method/photos.get'
-            params = {
+        with open('Token.txt', 'r', encoding='utf-8') as token:
+            self.params_vk = {
             'access_token': token.read(),
             'owner_id': self.vk_id,
             'album_id': 'profile',
             'v': '5.131',
             'extended': '1'
-        }  # Параметры запроса
-            self.res = requests.get(URL, params=params)
+        }
+
+    def res_vk(self): #Метод для получения списка ссылок на фото
+        URL = 'https://api.vk.com/method/photos.get'
+        self.res = requests.get(URL, params= self.params_vk)
+        print(self.res)
         return
     def photo_list(self):
         self.photos_list = {}
         self.photo_json = []
         count = 0
         count_limit = int(input('Введите количество фотографий для загрузки:\n'))
-        for number in range(len(self.res.json()['response']['items'])):
-            if self.res.json()['response']['items'][number]['likes']['count'] in self.photos_list:
-                self.photos_list[self.res.json()['response']['items'][number]['date']] = self.res.json()['response']['items'][number]['sizes'][-1]['url']
+        for number in self.res.json()['response']['items'][:count_limit]:
+            if number['likes']['count'] in self.photos_list:
+                self.photos_list[number['date']] = number['sizes'][-1]['url']
                 self.photo_json.append({
-                    'file_name' : f"{self.res.json()['response']['items'][number]['date']}.jpg",
-                    'size' : self.res.json()['response']['items'][number]['sizes'][-1]['type']
+                    'file_name' : f"{number['date']}.jpg",
+                    'size' : number['sizes'][-1]['type']
                 })
                 count += 1
                 if count == count_limit:
                     break
             else:
-                self.photos_list[self.res.json()['response']['items'][number]['likes']['count']] = self.res.json()['response']['items'][number]['sizes'][-1]['url']
+                self.photos_list[number['likes']['count']] = number['sizes'][-1]['url']
                 self.photo_json.append({
-                    'file_name': f"{self.res.json()['response']['items'][number]['likes']['count']}.jpg",
-                    'size': self.res.json()['response']['items'][number]['sizes'][-1]['type']
+                    'file_name': f"{number['likes']['count']}.jpg",
+                    'size': number['sizes'][-1]['type']
                 })
-                count += 1
-                if count == count_limit:
-                    break
     def create_folder(self):#Создаем папку
         self.name_folder = input('Введите название папки:\n')
         requests.put('https://cloud-api.yandex.net/v1/disk/resources', headers= self.headers, params= {'path': self.name_folder})
